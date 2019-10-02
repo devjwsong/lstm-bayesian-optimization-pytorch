@@ -21,6 +21,9 @@ class LSTM(nn.Module):
     def hidden_init(self, batch_size):
         h0 = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_dim)))
         c0 = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_dim)))
+        if torch.cuda.is_available():
+            h0 = h0.cuda()
+            c0 = c0.cuda()
         return (h0, c0)
 
     def forward(self, text, rnn_init=None):

@@ -8,6 +8,8 @@ import numpy as np
 import sys
 import datetime
 from tqdm import tqdm
+from tensorboardX import SummaryWriter
+summary = SummaryWriter()
 
 DATA_PATH = "../data"
 MODEL_PATH = "../model"
@@ -20,7 +22,7 @@ num_layers = 3
 
 vocab_name = "vocab.txt"
 epochs = 10
-print_log = 200
+print_log = 1
 
 def make_dict():
     with open(os.path.join(DATA_PATH, vocab_name), 'r') as f:
@@ -33,6 +35,7 @@ def make_dict():
 
 
 def train(model):
+    print("Train starts.")
     recent_loss = sys.float_info.max
     optimizer = optim.Adam(model.parameters(), lr=0.0005)
     criterion = nn.CrossEntropyLoss()
@@ -42,8 +45,16 @@ def train(model):
     model.train()
 
     for e in range(1, epochs+1):
-        counter = 1
+        epoch_train_loss = []
+        epoch_valid_loss = []
+        counter = 0
+
         for inputs, labels in tqdm(train_loader):
+            if torch.cuda.is_available():
+                inputs = inputs.cuda()
+                labels = labels.cuda()
+            else:
+                print("CUDA is not available. This training operates with CPU.")
             counter += 1
             optimizer.zero_grad()
             pred = model(inputs)
@@ -51,9 +62,12 @@ def train(model):
             loss.backward()
             optimizer.step()
 
+            epoch_train_loss.append(loss.item())
+
             if counter % print_log == 0:
                 cur_loss = loss.item()
                 val_loss = validate(model, dev_loader, criterion)
+                epoch_valid_loss.append(val_loss)
                 model.train()
 
                 print(f"epoch: {e}, loss: {cur_loss}, val_loss: {val_loss}")
@@ -62,6 +76,13 @@ def train(model):
                     now = datetime.datetime.today().strftime("%m%d_%H%M")
                     recent_loss = cur_loss
                     model_save(model, os.path.join(MODEL_PATH, '{}_epoch{}.pth'.format(now, e)))
+
+    #     summary.add_scalar('loss/train_loss', np.mean(epoch_train_loss), e)
+    #     summary.add_scalar('loss/validation_loss', np.mean(epoch_valid_loss), e)
+    #     summary.add_scalars('loss/loss_group', {'train': np.mean(epoch_train_loss),
+    #                                            'validation': np.mean(epoch_valid_loss)}, e)
+    #
+    # summary.close()
 
 
 def model_save(model, fname):
@@ -74,9 +95,13 @@ def model_load(model, fname):
 
 
 def validate(model, dev_loader, criterion):
+    print("Processing Validation...")
     val_losses = []
     model.eval()
     for dev_inputs, dev_labels in dev_loader:
+        if torch.cuda.is_available():
+            dev_inputs = dev_inputs.cuda()
+            dev_labels = dev_labels.cuda()
         pred = model(dev_inputs)
         val_loss = criterion(pred, dev_labels)
         val_losses.append(val_loss.item())
@@ -90,7 +115,10 @@ def test(model):
     correct = 0
     total = len(test_loader)
 
-    for inputs, labels in test_loader:
+    for inputs, labels in tqdm(test_loader):
+        if torch.cuda.is_available():
+            inputs = inputs.cuda()
+            labels = labels.cuda()
         pred = model(inputs)
         correct += (torch.argmax(pred, axis=1) == labels).sum().item()
 
@@ -99,4 +127,6 @@ def test(model):
 
 if __name__=="__main__":
     model = LSTM(input_dim, emb_dim, hid_dim, output_dim, num_layers)
+    if torch.cuda.is_available():
+        model = model.cuda()
     train(model)
