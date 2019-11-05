@@ -4,19 +4,20 @@ from torch.autograd import Variable
 import torch.functional as f
 
 class LSTM(nn.Module):
-    def __init__(self, input_dim, emb_dim, hid_dim, output_dim, num_layers):
+    def __init__(self, args):
         super().__init__()
-        self.embedding = nn.Embedding(input_dim, emb_dim)
+        self.args = args
+        self.embedding = nn.Embedding(self.args.input_dim, self.args.emb_dim)
         self.rnn = nn.LSTM(
-            input_size=emb_dim,
-            hidden_size=hid_dim,
-            dropout=0.5,
+            input_size=self.args.emb_dim,
+            hidden_size=self.args.hid_dim,
+            dropout=self.args.drop_out,
             batch_first=True,
-            num_layers=num_layers)
-        self.fc = nn.Linear(hid_dim, output_dim)
-        self.softmax = nn.Softmax(output_dim)
-        self.num_layers = num_layers
-        self.hidden_dim = hid_dim
+            num_layers=self.args.num_layers)
+        self.fc = nn.Linear(self.args.hid_dim, self.args.output_dim)
+        self.softmax = nn.Softmax(self.args.output_dim)
+        self.num_layers = self.args.num_layers
+        self.hidden_dim = self.args.hid_dim
 
     def hidden_init(self, batch_size):
         h0 = Variable(torch.zeros((self.num_layers, batch_size, self.hidden_dim)))

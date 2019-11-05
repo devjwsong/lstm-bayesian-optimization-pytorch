@@ -8,8 +8,6 @@ train_name = "train.txt"
 dev_name = "dev.txt"
 test_name = "test.txt"
 
-seq_len = 600
-
 def read_file(name):
     review_list = []
     score_list= []
@@ -28,7 +26,7 @@ def read_file(name):
     return review_list, score_list
 
 
-def pad_and_truncate(review_list):
+def pad_and_truncate(review_list, seq_len):
     features = np.zeros((len(review_list), seq_len),  dtype=int)
 
     for i, review in enumerate(tqdm(review_list)):
@@ -46,9 +44,9 @@ def pad_and_truncate(review_list):
     return features
 
 
-def get_data(name):
+def get_data(name, seq_len):
     review_list, score_list = read_file(name)
-    review_list = pad_and_truncate(review_list)
+    review_list = pad_and_truncate(review_list, seq_len)
     score_list = np.array(score_list)
 
     return review_list, score_list
