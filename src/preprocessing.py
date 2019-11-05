@@ -2,7 +2,7 @@ import os
 from tqdm import tqdm
 import numpy as np
 
-DATA_PATH = "../data/encoded"
+DATA_PATH = "../data/nsc_encoded"
 
 train_name = "train.txt"
 dev_name = "dev.txt"

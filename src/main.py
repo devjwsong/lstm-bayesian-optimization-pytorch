@@ -77,12 +77,12 @@ def train(model):
                     recent_loss = cur_loss
                     model_save(model, os.path.join(MODEL_PATH, '{}_epoch{}.pth'.format(now, e)))
 
-    #     summary.add_scalar('loss/train_loss', np.mean(epoch_train_loss), e)
-    #     summary.add_scalar('loss/validation_loss', np.mean(epoch_valid_loss), e)
-    #     summary.add_scalars('loss/loss_group', {'train': np.mean(epoch_train_loss),
-    #                                            'validation': np.mean(epoch_valid_loss)}, e)
-    #
-    # summary.close()
+        summary.add_scalar('loss/train_loss', np.mean(epoch_train_loss), e)
+        summary.add_scalar('loss/validation_loss', np.mean(epoch_valid_loss), e)
+        summary.add_scalars('loss/loss_group', {'train': np.mean(epoch_train_loss),
+                                               'validation': np.mean(epoch_valid_loss)}, e)
+
+    summary.close()
 
 
 def model_save(model, fname):
