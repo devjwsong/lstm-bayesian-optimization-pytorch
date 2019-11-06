@@ -18,7 +18,7 @@ class Instructor:
         self.model = LSTM(self.args)
 
         if self.args.model_name is not "":
-            self.model = self.model_load(self.model, self.args.model_name)
+            self.model_load(os.path.join(self.args.model_path, self.args.model_name))
         if torch.cuda.is_available():
             self.model = self.model.cuda()
 
@@ -37,8 +37,8 @@ class Instructor:
         optimizer = optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
         criterion = nn.CrossEntropyLoss()
 
-        train_loader = get_loader("train.txt")
-        dev_loader = get_loader("dev.txt")
+        train_loader = get_loader("train.txt", self.args)
+        dev_loader = get_loader("dev.txt", self.args)
         self.model.train()
 
         for e in range(1, self.args.epochs+1):
@@ -85,8 +85,8 @@ class Instructor:
         with open(fname, 'wb') as f:
             torch.save(model.state_dict(), fname)
 
-    def model_load(self, model, fname):
-        return model.load_state_dict(torch.load(fname))
+    def model_load(self, fname):
+        self.model.load_state_dict(torch.load(fname))
 
     def validate(self, dev_loader, criterion):
         print("Processing Validation...")
@@ -104,9 +104,9 @@ class Instructor:
 
     def test(self):
         self.model.eval()
-        test_loader = get_loader("test.txt")
+        test_loader = get_loader("test.txt", self.args)
         correct = 0
-        total = len(test_loader)
+        total = len(test_loader.dataset)
 
         for inputs, labels in tqdm(test_loader):
             if torch.cuda.is_available():
