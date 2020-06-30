@@ -1,146 +1,167 @@
+from tqdm import tqdm
+from custom_data import *
+from lstm import *
+from constant import *
+from torch.utils.data import DataLoader
+from tensorboardX import SummaryWriter
+from sklearn.metrics import f1_score
+
 import torch
 import torch.optim as optim
 import torch.nn as nn
-from lstm import LSTM
-import os, argparse
-from dataload import get_loader
+import os
+import argparse
 import numpy as np
-import sys
-import datetime
-from tqdm import tqdm
-from tensorboardX import SummaryWriter
-summary = SummaryWriter()
 
 
-class Instructor:
-    def __init__(self, args):
-        self.args = args
-        self.model = LSTM(self.args)
+class Manager:
+    def __init__(self, mode, model_name=None):
+        print("Loading dataset & vocab dict...")
+        train_set, dev_set, test_set, word2idx = get_data()
+        self.train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=True)
+        self.valid_loader = DataLoader(dev_set, batch_size=batch_size, shuffle=True)
+        self.test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=True)
 
-        if self.args.model_name is not "":
-            self.model_load(os.path.join(self.args.model_path, self.args.model_name))
-        if torch.cuda.is_available():
-            self.model = self.model.cuda()
+        print("Loading model...")
+        self.model = LSTM(len(word2idx))
 
-    def make_dict(self):
-        with open(os.path.join(self.args.data_path, self.args.vocab_name), 'r') as f:
-            vocab_list = f.read().splitlines()
+        if mode == 'train':
+            if not os.path.isdir(ckpt_dir):
+                os.mkdir(ckpt_dir)
 
-        vocab_to_int = {w: i+1 for i, w in enumerate(vocab_list)}
-        int_to_vocab = {i+1: w for i, w in enumerate(vocab_list)}
+            for p in self.model.parameters():
+                if p.dim() > 1:
+                    nn.init.xavier_uniform_(p)
 
-        return vocab_to_int, int_to_vocab
+            print("Initializing optimizer & loss function...")
+            self.optim = optim.Adam(self.model.parameters(), lr=learning_rate)
+            self.criterion = nn.NLLLoss(reduction='mean', ignore_index=word2idx['<pad>'])
+            self.summary = SummaryWriter()
+        elif mode == 'test':
+            assert model_name is not None, "Please specify the model name if you want to test."
+
+            self.model.load_state_dict(torch.load(f"{ckpt_dir}/{model_name}"))
+
+        self.model = self.model.to(device)
 
     def train(self):
-        print("Train starts.")
-        recent_loss = sys.float_info.max
-        optimizer = optim.Adam(self.model.parameters(), lr=self.args.learning_rate)
-        criterion = nn.CrossEntropyLoss()
+        for epoch in range(1, epoch_num+1):
+            self.model.train()
+            best_f1 = 0.0
 
-        train_loader = get_loader("train.txt", self.args)
-        dev_loader = get_loader("dev.txt", self.args)
-        self.model.train()
+            total_train_losses = []
+            total_train_preds = []
+            total_train_targs = []
 
-        for e in range(1, self.args.epochs+1):
-            epoch_train_loss = []
-            epoch_valid_loss = []
-            counter = 0
+            for batch in tqdm(self.train_loader):
+                x, y, lens = batch
+                lens_sorted, idx = lens.sort(dim=0, descending=True)
+                x_sorted = x[idx]
+                y_sorted = y[idx]
 
-            for inputs, labels in tqdm(train_loader):
-                if torch.cuda.is_available():
-                    inputs = inputs.cuda()
-                    labels = labels.cuda()
-                else:
-                    print("CUDA is not available. This training operates with CPU.")
-                counter += 1
-                optimizer.zero_grad()
-                pred = self.model(inputs)
-                loss = criterion(pred, labels)
+                x, y, lens = x_sorted.to(device), y_sorted.to(device), lens_sorted.to(device)
+
+                output = self.model(x, lens)  # (B, class_num)
+                loss = self.criterion(output, y)  # ()
+
+                self.optim.zero_grad()
                 loss.backward()
-                optimizer.step()
+                self.optim.step()
 
-                epoch_train_loss.append(loss.item())
+                total_train_losses.append(loss.item())
+                total_train_preds += torch.argmax(output, dim=-1).tolist()
+                total_train_targs += y.tolist()
 
-                if counter % self.args.print_log == 0:
-                    cur_loss = loss.item()
-                    val_loss = self.validate(self.model, dev_loader, criterion)
-                    epoch_valid_loss.append(val_loss)
-                    self.model.train()
+            train_loss = np.mean(total_train_losses)
+            train_f1 = f1_score(total_train_targs, total_train_preds, average='weighted')
 
-                    print(f"epoch: {e}, loss: {cur_loss}, val_loss: {val_loss}")
+            print(f"########## Epoch: {epoch} ##########")
+            print(f"Train loss: {train_loss} || Train f1 score: {train_f1}")
 
-                    if cur_loss <= recent_loss:
-                        now = datetime.datetime.today().strftime("%m%d_%H%M")
-                        recent_loss = cur_loss
-                        self.model_save(self.model, os.path.join(self.args.model_path, '{}_epoch{}.pth'.format(now, e)))
+            valid_loss, valid_f1 = self.validate()
 
-            summary.add_scalar('loss/train_loss', np.mean(epoch_train_loss), e)
-            summary.add_scalar('loss/validation_loss', np.mean(epoch_valid_loss), e)
-            summary.add_scalars('loss/loss_group', {'train': np.mean(epoch_train_loss),
-                                                   'validation': np.mean(epoch_valid_loss)}, e)
+            if valid_f1 > best_f1:
+                print("***** Current best model saved. *****")
+                torch.save(self.model.state_dict(), f"{ckpt_dir}/best_model.pth")
+                best_f1 = valid_f1
 
-        summary.close()
+            print(f"Valid loss: {valid_loss} || Valid f1 score: {valid_f1} || Best f1 score: {best_f1}")
 
-    def model_save(self, model, fname):
-        with open(fname, 'wb') as f:
-            torch.save(model.state_dict(), fname)
+            self.summary.add_scalar('loss/train_loss', train_loss, epoch)
+            self.summary.add_scalar('loss/validation_loss', valid_loss, epoch)
+            self.summary.add_scalars('loss/loss_group', {'train': train_loss,
+                                                   'validation': valid_loss}, epoch)
 
-    def model_load(self, fname):
-        self.model.load_state_dict(torch.load(fname))
+        self.summary.close()
 
-    def validate(self, dev_loader, criterion):
-        print("Processing Validation...")
-        val_losses = []
+    def validate(self):
         self.model.eval()
-        for dev_inputs, dev_labels in dev_loader:
-            if torch.cuda.is_available():
-                dev_inputs = dev_inputs.cuda()
-                dev_labels = dev_labels.cuda()
-            pred = self.model(dev_inputs)
-            val_loss = criterion(pred, dev_labels)
-            val_losses.append(val_loss.item())
+        total_valid_losses = []
+        total_valid_preds = []
+        total_valid_targs = []
 
-        return np.mean(val_losses)
+        for batch in tqdm(self.valid_loader):
+            x, y, lens = batch
+            lens_sorted, idx = lens.sort(dim=0, descending=True)
+            x_sorted = x[idx]
+            y_sorted = y[idx]
+
+            x, y, lens = x_sorted.to(device), y_sorted.to(device), lens_sorted.to(device)
+
+            output = self.model(x, lens)  # (B, class_num)
+            loss = self.criterion(output, y)  # ()
+
+            total_valid_losses.append(loss.item())
+            total_valid_preds += torch.argmax(output, dim=-1).tolist()
+            total_valid_targs += y.tolist()
+
+        valid_loss = np.mean(total_valid_losses)
+        valid_f1 = f1_score(total_valid_targs, total_valid_preds, average='weighted')
+
+        return valid_loss, valid_f1
 
     def test(self):
         self.model.eval()
-        test_loader = get_loader("test.txt", self.args)
-        correct = 0
-        total = len(test_loader.dataset)
+        total_test_losses = []
+        total_test_preds = []
+        total_test_targs = []
 
-        for inputs, labels in tqdm(test_loader):
-            if torch.cuda.is_available():
-                inputs = inputs.cuda()
-                labels = labels.cuda()
-            pred = self.model(inputs)
-            correct += (torch.argmax(pred, axis=1) == labels).sum().item()
+        for batch in tqdm(self.test_loader):
+            x, y, lens = batch
+            lens_sorted, idx = lens.sort(dim=0, descending=True)
+            x_sorted = x[idx]
+            y_sorted = y[idx]
 
-        accuracy = correct / total * 100
-        print(f"Accuracy: {accuracy:.2f}")
+            x, y, lens = x_sorted.to(device), y_sorted.to(device), lens_sorted.to(device)
+
+            output = self.model(x, lens)  # (B, class_num)
+            loss = self.criterion(output, y)  # ()
+
+            total_test_losses.append(loss.item())
+            total_test_preds += torch.argmax(output, dim=-1).tolist()
+            total_test_targs += y.tolist()
+
+        test_loss = np.mean(total_test_losses)
+        test_f1 = f1_score(total_test_targs, total_test_preds, average='weighted')
+
+        print("######## Test Results ########")
+        print(f"Test loss: {test_loss} || Test f1 score: {test_f1}")
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--test", default=False, help="train or test", type=bool)
-parser.add_argument("--data_path", default="../data", help="path to data", type=str)
-parser.add_argument("--model_path", default="../model", help="path to model", type=str)
-parser.add_argument("--input_dim", default=195158, help="vocab size", type=int)
-parser.add_argument("--emb_dim", default=400, help="embedding size", type=int)
-parser.add_argument("--hid_dim", default=256, help="hidden size", type=int)
-parser.add_argument("--output_dim", default=5, help="output size", type=int)
-parser.add_argument("--num_layers", default=3, help="num of layers", type=int)
-parser.add_argument("--drop_out", default=0.5, help="dropout value", type=float)
-parser.add_argument("--vocab_name", default="vocab.txt", help="name of vocab file", type=str)
-parser.add_argument("--batch_size", default=32, help="batch size", type=int)
-parser.add_argument("--seq_len", default=600, help="length of input seq", type=int)
-parser.add_argument("--learning_rate", default=0.0005, help="learning rate", type=float)
-parser.add_argument("--epochs", default=10, help="num of epochs", type=int)
-parser.add_argument("--print_log", default=1000, help="period to print log and validation", type=int)
-parser.add_argument("--model_name", default="", help="model to load", type=str)
+if __name__=='__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', type=str, required=True, help='train or test?')
+    parser.add_argument('--model_name', type=str, help='name of model file if you want to test.')
 
-args = parser.parse_args()
-instr = Instructor(args)
+    args = parser.parse_args()
 
-if args.test:
-    instr.test()
-else:
-    instr.train()
+    assert args.mode == 'train' or args.mode == 'test', "Please specify correct mode."
+
+    manager = Manager(args.mode, args.model_name)
+
+    if args.mode == 'train':
+        print("Training starts.")
+        manager.train()
+    elif args.mode == 'test':
+        print("Testing starts.")
+        manager.test()
