@@ -23,8 +23,8 @@ class LSTM(nn.Module):
             input_size=d_w,
             hidden_size=d_h,
             bidirectional=bidirectional,
-            dropout=drop_out_rate,
             batch_first=True,
+            dropout=drop_out_rate,
             num_layers=layer_num
         )
         self.dir_num = 2 if bidirectional else 1

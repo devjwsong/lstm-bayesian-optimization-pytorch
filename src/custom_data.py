@@ -3,6 +3,7 @@ from constant import *
 from torch.utils.data import Dataset
 
 import torch
+import matplotlib.pyplot as plt
 
 
 def read_file(name):
@@ -90,3 +91,31 @@ def get_data():
     test_set = CustomDataset(test_data, word2idx)
 
     return train_set, dev_set, test_set, word2idx
+
+
+if __name__=='__main__':
+    print("Reading data...")
+    train_data = read_file(train_name)
+    dev_data = read_file(dev_name)
+    test_data = read_file(test_name)
+
+    i = 0
+    for score, text_list in train_data.items():
+        for text in tqdm(text_list):
+            words = [word for word in text.split(' ')]
+            plt.scatter(i, len(words))
+            i += 1
+
+    for score, text_list in dev_data.items():
+        for text in tqdm(text_list):
+            words = [word for word in text.split(' ')]
+            plt.scatter(i, len(words))
+            i += 1
+
+    for score, text_list in test_data.items():
+        for text in tqdm(text_list):
+            words = [word for word in text.split(' ')]
+            plt.scatter(i, len(words))
+            i += 1
+
+    plt.show()

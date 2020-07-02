@@ -9,16 +9,16 @@ test_name = 'test.txt'
 
 # Parameters for training and modeling
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-learning_rate = 0.0001
+learning_rate = 0.0005
 batch_size = 128
-seq_len = 320
+seq_len = 512
 d_w = 256
 d_h = 512
 drop_out_rate = 0.5
-layer_num = 2
+layer_num = 3
 bidirectional = True
 class_num = 5
-epoch_num = 10
+epoch_num = 15
 ckpt_dir = '../saved_model'
 
 # Path for tensorboard

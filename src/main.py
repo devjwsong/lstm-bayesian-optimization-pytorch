@@ -35,7 +35,6 @@ class Manager:
 
             print("Initializing optimizer & loss function...")
             self.optim = optim.Adam(self.model.parameters(), lr=learning_rate)
-            self.criterion = nn.NLLLoss(reduction='mean', ignore_index=word2idx['<pad>'])
             self.summary = SummaryWriter()
         elif mode == 'test':
             assert model_name is not None, "Please specify the model name if you want to test."
@@ -43,11 +42,13 @@ class Manager:
             self.model.load_state_dict(torch.load(f"{ckpt_dir}/{model_name}"))
 
         self.model = self.model.to(device)
+        self.criterion = nn.NLLLoss(reduction='mean', ignore_index=word2idx['<pad>'])
 
     def train(self):
+        best_f1 = 0.0
+
         for epoch in range(1, epoch_num+1):
             self.model.train()
-            best_f1 = 0.0
 
             total_train_losses = []
             total_train_preds = []
