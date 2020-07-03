@@ -3,7 +3,7 @@ from custom_data import *
 from lstm import *
 from constant import *
 from torch.utils.data import DataLoader
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import f1_score
 
 import torch
