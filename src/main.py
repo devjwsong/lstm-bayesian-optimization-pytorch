@@ -42,7 +42,7 @@ class Manager:
             self.model.load_state_dict(torch.load(f"{ckpt_dir}/{model_name}"))
 
         self.model = self.model.to(device)
-        self.criterion = nn.NLLLoss(reduction='mean', ignore_index=word2idx['<pad>'])
+        self.criterion = nn.NLLLoss(reduction='mean')
 
     def train(self):
         best_f1 = 0.0
