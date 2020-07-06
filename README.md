@@ -56,15 +56,11 @@ Detailed instructions are explained below.
    )
    ```
 
-   <br/>
-
    Currently, the batch size and the learning rate are only subjects to be adjusted.
 
    If you want to modify `self.pbounds`, add the desired hyperparameter and change its value in `constant.py` into a tuple of `(min, MAX)`.
 
    Then you should add that hyperparameter as an additional parameter for the function `train` like `batch_size` and `learning_rate`.
-
-   <br/>
 
    Execute below command to train the model.
 
