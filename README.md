@@ -1,5 +1,5 @@
 # lstm-bayesian-optimization-pytorch
-This is a simple application of LSTM to sentiment classification task in Pytorch.
+This is a simple application of LSTM to sentiment classification task in Pytorch using Bayesian Optimization for hyperparameter tuning.
 
 The dataset used is Yelp 2014 review data which can be downloaded from [here](http://www.thunlp.org/~chm/data/data.zip).
 
