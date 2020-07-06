@@ -37,7 +37,15 @@ Detailed instructions are explained below.
 
    <br/>
 
-4. Train the LSTM model.
+4. Execute below command to train the model.
+
+   ```shell
+   python src/main.py --mode='train'
+   ```
+
+   - `--mode`: This specify the running mode. The mode can be either `train` or `test`.
+
+   <br/>
 
    The Bayesian Optimization is used for hyper-parameter tuning in this task.
 
@@ -58,17 +66,9 @@ Detailed instructions are explained below.
 
    Currently, the batch size and the learning rate are only subjects to be adjusted.
 
-   If you want to modify `self.pbounds`, add the desired hyperparameter and change its value in `constant.py` into a tuple of `(min, MAX)`.
+   If you want to modify `self.pbounds`, add the desired hyperparameter and change its value in `constant.py` into a tuple consisting of two values, minimum and maximum, sequentially.
 
    Then you should add that hyperparameter as an additional parameter for the function `train` like `batch_size` and `learning_rate`.
-
-   Execute below command to train the model.
-
-   ```shell
-   python src/main.py --mode='train'
-   ```
-
-   - `--mode`: This specify the running mode. The mode can be either `train` or `test`.
 
    <br/>
 
