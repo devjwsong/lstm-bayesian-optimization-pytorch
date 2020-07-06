@@ -6,6 +6,14 @@ import torch
 import matplotlib.pyplot as plt
 
 
+# Path or parameters for data
+DATA_PATH = '../data'
+vocab_name = 'wordlist.txt'
+train_name = 'train.txt'
+dev_name = 'dev.txt'
+test_name = 'test.txt'
+
+
 def read_file(name):
     score2text = {}
     with open(f'{DATA_PATH}/{name}', 'r') as f:

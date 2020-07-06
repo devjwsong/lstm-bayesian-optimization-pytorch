@@ -107,5 +107,5 @@ venv.bak/
 data/
 model/
 src/runs
-saved_model
+saved_models/
 src/__pychache__

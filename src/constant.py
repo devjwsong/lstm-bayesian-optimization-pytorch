@@ -1,12 +1,5 @@
 import torch
 
-# Path or parameters for data
-DATA_PATH = '../data'
-vocab_name = 'wordlist.txt'
-train_name = 'train.txt'
-dev_name = 'dev.txt'
-test_name = 'test.txt'
-
 # Parameters for training and modeling
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 learning_rates = (0.0001, 0.001)

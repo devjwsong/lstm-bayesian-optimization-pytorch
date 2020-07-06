@@ -19,12 +19,14 @@ class Manager:
         print("Loading dataset & vocab dict...")
         self.train_set, self.dev_set, self.test_set, self.word2idx = get_data()
 
+        self.pbounds = {
+            'learning_rate': learning_rates,
+            'batch_size': batch_sizes
+        }
+
         self.bayes_optimizer = BayesianOptimization(
             f=self.train,
-            pbounds={
-                'learning_rate': learning_rates,
-                'batch_size': batch_sizes
-            },
+            pbounds=self.pbounds,
             random_state=777
         )
 
@@ -172,6 +174,7 @@ if __name__=='__main__':
 
         print("Best optimization option")
         print(manager.bayes_optimizer.max)
+
     elif args.mode == 'test':
         assert args.model_name is not None, "Please give the model name if you want to conduct test."
 
