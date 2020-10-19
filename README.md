@@ -1,7 +1,7 @@
 # lstm-bayesian-optimization-pytorch
-This is a simple application of LSTM to sentiment classification task in Pytorch using Bayesian Optimization for hyperparameter tuning.
+This is a simple application of LSTM to sentiment classification task in Pytorch using **Bayesian Optimization** for hyperparameter tuning.
 
-The dataset used is Yelp 2014 review data which can be downloaded from [here](http://www.thunlp.org/~chm/data/data.zip).
+The dataset used is *Yelp 2014* review data[[1]](#1) which can be downloaded from [here](http://www.thunlp.org/~chm/data/data.zip).
 
 Detailed instructions are explained below.
 
@@ -81,6 +81,13 @@ Detailed instructions are explained below.
    - `model_name`: This is the file name of trained model you want to test. The model is located in `saved_models` directory if you didn't change the checkpoint directory setting.
 
 <br/>
+
+---
+
+### References
+
+<a id="1">[1]</a> 
+*Yelp Open Dataset*. ([https://www.yelp.com/dataset](https://www.yelp.com/dataset))
 
 ---
 
