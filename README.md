@@ -112,10 +112,11 @@ Argument | Type | Description | Default
 5. After training, you can test the model with test data by following command.
 
    ```shell
-   python src/main.py --mode='test' --model_name=MODEL_NAME
+   python src/main.py --mode='test' --model_name=MODEL_NAME --inference_batch_size=BATCH_SIZE
    ```
 
-   - `model_name`: This is the file name of trained model you want to test. The model is located in `saved_models` directory if you didn't change the checkpoint directory setting.
+   - `model_name`: This is the file name of trained model you want to test. The model is located in `saved_models` directory if you didn't change the checkpoint directory setting. (default: `None`)
+   - `inference_batch_size`: This is the batch size for inference step. This is irrelevant with `batch_size` in `src/constants.py` since this argument might be subject to Bayesian Optmization process. You can set the separate batch size only for inferencing. (default: `128`)
 
 <br/>
 

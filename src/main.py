@@ -161,6 +161,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', type=str, required=True, help='train or test?')
     parser.add_argument('--model_name', type=str, help='name of model file if you want to test.')
+    parser.add_argument('--inference_batch_size', type=int, default=128, help='Batch size for inferencing.')
 
     args = parser.parse_args()
 
@@ -179,4 +180,4 @@ if __name__=='__main__':
         assert args.model_name is not None, "Please give the model name if you want to conduct test."
 
         print("Testing starts.")
-        manager.test(args.model_name, batch_size=128)
+        manager.test(args.model_name, batch_size=args.inference_batch_size)
